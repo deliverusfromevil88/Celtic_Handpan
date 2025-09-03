@@ -33,6 +33,11 @@ jobs:
         sed -i 's/\r$//' .venv/bin/activate
         source .venv/bin/activate
         pip install --upgrade pip setuptools wheel Cython buildozer
+        
+        # Install required Android SDK components
+        yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROIDSDK \
+          "platform-tools" "platforms;android-33" "build-tools;34.0.0"
+        
         buildozer android debug
 
     - name: Upload APK artifact
