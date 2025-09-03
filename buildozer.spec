@@ -1,4 +1,7 @@
 [app]
+android.build_tools = 34.0.0
+android.sdk_path = .buildozer/android/platform/android-sdk
+
 title = Celtic Handpan
 package.name = celtic_handpan
 package.domain = org.jason
