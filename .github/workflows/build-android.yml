@@ -9,61 +9,39 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y zip unzip openjdk-17-jdk libffi-dev libssl-dev \
-          libbz2-dev libncurses5-dev libsqlite3-dev zlib1g-dev libjpeg-dev
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip unzip openjdk-17-jdk libffi-dev libssl-dev \
+            libbz2-dev libncurses5-dev libsqlite3-dev zlib1g-dev libjpeg-dev
 
-    - name: Create & activate venv, install Buildozer, build APK
-      shell: bash -l {0}
-      env:
-        ANDROIDSDK: ${{ github.workspace }}/.buildozer/android/platform/android-sdk
-        ANDROIDNDK: ${{ github.workspace }}/.buildozer/android/platform/android-ndk-r25b
-      run: |
-        python3 -m venv .venv
-        sed -i 's/\r$//' .venv/bin/activate
-        source .venv/bin/activate
-        pip install --upgrade pip setuptools wheel Cython buildozer
-        
-        # Install required Android SDK components
-        yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROIDSDK \
-          "platform-tools" "platforms;android-33" "build-tools;34.0.0"
-        - name: Create & activate venv, install Buildozer, install SDK tools, build APK
-      shell: bash -l {0}
-      env:
-        ANDROIDSDK: ${{ github.workspace }}/.buildozer/android/platform/android-sdk
-        ANDROIDNDK: ${{ github.workspace }}/.buildozer/android/platform/android-ndk-r25b
-      run: |
-        # 1) Create & fix venv
-        python3 -m venv .venv
-        sed -i 's/\r$//' .venv/bin/activate
-        source .venv/bin/activate
+      - name: Create & activate venv, install Buildozer, install SDK tools, build APK
+        shell: bash -l {0}
+        env:
+          ANDROIDSDK: ${{ github.workspace }}/.buildozer/android/platform/android-sdk
+          ANDROIDNDK: ${{ github.workspace }}/.buildozer/android/platform/android-ndk-r25b
+        run: |
+          python3 -m venv .venv
+          sed -i 's/\r$//' .venv/bin/activate
+          source .venv/bin/activate
+          pip install --upgrade pip setuptools wheel Cython buildozer
 
-        # 2) Install Buildozer + deps
-        pip install --upgrade pip setuptools wheel Cython buildozer
+          yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --sdk_root="$ANDROIDSDK" --licenses
+          yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --sdk_root="$ANDROIDSDK" \
+            "platform-tools" "platforms;android-33" "build-tools;34.0.0"
 
-        # 3) Accept all SDK licenses (mandatory!)
-        yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --sdk_root="$ANDROIDSDK" --licenses
+          buildozer android debug
 
-        # 4) Install the stable Android platform-tools & build-tools 34.0.0
-        yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --sdk_root="$ANDROIDSDK" \
-          "platform-tools" "platforms;android-33" "build-tools;34.0.0"
-
-        # 5) Finally build the APK
-        buildozer android debug
-        buildozer android debug
-
-    - name: Upload APK artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: celtic-handpan-apk
-        path: bin/*.apk
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: celtic-handpan-apk
+          path: bin/*.apk
