@@ -37,7 +37,29 @@ jobs:
         # Install required Android SDK components
         yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROIDSDK \
           "platform-tools" "platforms;android-33" "build-tools;34.0.0"
-        
+        - name: Create & activate venv, install Buildozer, install SDK tools, build APK
+      shell: bash -l {0}
+      env:
+        ANDROIDSDK: ${{ github.workspace }}/.buildozer/android/platform/android-sdk
+        ANDROIDNDK: ${{ github.workspace }}/.buildozer/android/platform/android-ndk-r25b
+      run: |
+        # 1) Create & fix venv
+        python3 -m venv .venv
+        sed -i 's/\r$//' .venv/bin/activate
+        source .venv/bin/activate
+
+        # 2) Install Buildozer + deps
+        pip install --upgrade pip setuptools wheel Cython buildozer
+
+        # 3) Accept all SDK licenses (mandatory!)
+        yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --sdk_root="$ANDROIDSDK" --licenses
+
+        # 4) Install the stable Android platform-tools & build-tools 34.0.0
+        yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --sdk_root="$ANDROIDSDK" \
+          "platform-tools" "platforms;android-33" "build-tools;34.0.0"
+
+        # 5) Finally build the APK
+        buildozer android debug
         buildozer android debug
 
     - name: Upload APK artifact
