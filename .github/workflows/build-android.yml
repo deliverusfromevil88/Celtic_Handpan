@@ -1,7 +1,9 @@
 name: Build Android APK
+
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -11,37 +13,52 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: 3.10
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y zip unzip openjdk-17-jdk libffi-dev libssl-dev \
+          sudo apt-get install -y \
+            zip unzip \
+            openjdk-17-jdk \
+            libffi-dev libssl-dev \
             libbz2-dev libncurses5-dev libsqlite3-dev zlib1g-dev libjpeg-dev
 
-      - name: Create & activate venv, install Buildozer, install SDK tools, build APK
+      - name: Create & activate venv, install Buildozer & SDK tools, build APK
         shell: bash -l {0}
         env:
           ANDROIDSDK: ${{ github.workspace }}/.buildozer/android/platform/android-sdk
           ANDROIDNDK: ${{ github.workspace }}/.buildozer/android/platform/android-ndk-r25b
         run: |
+          # create & enter venv
           python3 -m venv .venv
           sed -i 's/\r$//' .venv/bin/activate
           source .venv/bin/activate
+
+          # install Buildozer + friends
           pip install --upgrade pip setuptools wheel Cython buildozer
 
-          yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --sdk_root="$ANDROIDSDK" --licenses
-          yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --sdk_root="$ANDROIDSDK" \
-            "platform-tools" "platforms;android-33" "build-tools;34.0.0"
+          # accept all Android SDK licenses
+          yes | "$ANDROIDSDK/tools/bin/sdkmanager" --sdk_root="$ANDROIDSDK" --licenses
 
+          # install exactly what your spec needs
+          yes | "$ANDROIDSDK/tools/bin/sdkmanager" --sdk_root="$ANDROIDSDK" \
+            "platform-tools" \
+            "platforms;android-33" \
+            "build-tools;34.0.0"
+
+          # kick off the Buildozer build
           buildozer android debug
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: celtic-handpan-apk
+          name: app-debug-apk
           path: bin/*.apk
